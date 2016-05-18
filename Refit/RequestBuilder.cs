@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace Refit
 {
@@ -38,6 +39,11 @@ namespace Refit
         {
             return ForType(typeof(T), null);
         }
+    }
+
+    public interface ICustomDeserializer<T1>
+    {
+        Task<T1> Deserialize(HttpResponseMessage message);
     }
 
 #if PORTABLE

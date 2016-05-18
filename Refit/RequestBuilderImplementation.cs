@@ -317,6 +317,12 @@ namespace Refit
 
                 var resp = await client.SendAsync(rq, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
 
+                if(restMethod.DeserializerType != null)
+                {
+                    var deserializer = (ICustomDeserializer<T>)Activator.CreateInstance(restMethod.DeserializerType);
+                    return await deserializer.Deserialize(resp);
+                }
+
                 if (restMethod.SerializedReturnType == typeof(HttpResponseMessage)) {
                     // NB: This double-casting manual-boxing hate crime is the only way to make 
                     // this work without a 'class' generic constraint. It could blow up at runtime 
@@ -434,6 +440,7 @@ namespace Refit
         public Dictionary<int, ParameterInfo> ParameterInfoMap { get; set; }
         public Type ReturnType { get; set; }
         public Type SerializedReturnType { get; set; }
+        public Type DeserializerType { get; set; }
         public RefitSettings RefitSettings { get; set; }
 
         static readonly Regex parameterRegex = new Regex(@"{(.*?)}");
@@ -459,6 +466,7 @@ namespace Refit
 
             verifyUrlPathIsSane(RelativePath);
             determineReturnTypeInfo(methodInfo);
+            determineDeserializer(methodInfo);
 
             // Exclude cancellation token parameters from this list
             var parameterList = methodInfo.GetParameters().Where(p => p.ParameterType != typeof(CancellationToken)).ToList();
@@ -662,6 +670,24 @@ namespace Refit
             }
 
             return ret;
+        }
+
+        void determineDeserializer(MethodInfo methodInfo)
+        {
+            var declaringTypeAttributes = methodInfo.DeclaringType != null
+                ? methodInfo.DeclaringType.GetCustomAttributes(true)
+                : new Attribute[0];
+
+            //use either a deserializer specified by class or method. Method deserializer takes precidence over class deserializer
+            var deserializers = declaringTypeAttributes.Concat(methodInfo.GetCustomAttributes(true))
+                .OfType<DeserializerAttribute>()
+                .Select(a => a.Deserializer);
+
+            foreach (var deserializer in deserializers) {
+                if (deserializer == null) continue;
+
+                DeserializerType = deserializer;
+            }
         }
 
         void determineReturnTypeInfo(MethodInfo methodInfo)

@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Linq;
 
 namespace Refit
 {
@@ -146,6 +147,17 @@ namespace Refit
         public AuthorizeAttribute(string scheme = "Bearer")
             : base("Authorization: " + scheme)
         {
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Method)]
+    public class DeserializerAttribute : Attribute
+    {
+        public Type Deserializer { get; private set; }
+
+        public DeserializerAttribute(Type deserializer)
+        {
+            Deserializer = deserializer;
         }
     }
 }
