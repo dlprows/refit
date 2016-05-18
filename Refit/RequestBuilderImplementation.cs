@@ -97,6 +97,7 @@ namespace Refit
                     if (restMethod.BodyParameterInfo != null && restMethod.BodyParameterInfo.Item2 == i) {
                         var streamParam = paramList[i] as Stream;
                         var stringParam = paramList[i] as string;
+                        var byteArrayParam = paramList[i] as byte[];
                         var httpContentParam = paramList[i] as HttpContent;
 
                         if (httpContentParam != null) {
@@ -105,6 +106,8 @@ namespace Refit
                             ret.Content = new StreamContent(streamParam);
                         } else if (stringParam != null) {
                             ret.Content = new StringContent(stringParam);
+                        }else if( byteArrayParam != null) {
+                            ret.Content = new ByteArrayContent(byteArrayParam);
                         } else {
                             switch (restMethod.BodyParameterInfo.Item1) {
                             case BodySerializationMethod.UrlEncoded:
@@ -344,6 +347,10 @@ namespace Refit
                 }
 
                 var bytes = ms.ToArray();
+                if(restMethod.SerializedReturnType == typeof(byte[]))
+                {
+                    return (T)(object)bytes;
+                }
                 var content = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
 
                 if (restMethod.SerializedReturnType == typeof(string)) {
